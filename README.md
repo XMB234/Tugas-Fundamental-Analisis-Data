@@ -10,3 +10,8 @@ conda activate myenv
 
 # Menginstal semua package dari file requirements.txt
 pip install -r requirements.txt
+```
+## Run steamlit app
+```bash
+streamlit run dashboard.py
+```

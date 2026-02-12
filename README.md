@@ -3,10 +3,10 @@
 
 ```bash
 # Membuat environment conda dengan nama 'main-ds' dan Python 3.9
-conda create --name main-ds python=3.9
+conda create --name myenv python=3.13
 
-# Mengaktifkan environment 'main-ds'
-conda activate main-ds
+# Mengaktifkan environment 'myenv'
+conda activate myenv
 
 # Menginstal semua package dari file requirements.txt
 pip install -r requirements.txt

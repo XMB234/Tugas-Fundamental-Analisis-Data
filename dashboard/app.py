@@ -4,7 +4,7 @@ import numpy as np           # Untuk operasi numerik
 import matplotlib.pyplot as plt # Untuk membuat plot statis
 import seaborn as sns        # Untuk visualisasi statistik yang lebih indah
 import matplotlib.ticker as mticker # Untuk format sumbu plot
-import pathlib as Path              # Untuk manajemen path file  
+from pathlib import Path           # Untuk manajemen path file  
 
 st.set_page_config(layout="wide")
 
@@ -844,3 +844,4 @@ elif selected_section == "Kesimpulan Utama Analisis":
             *   **Kompleksitas Pembayaran Tidak Signifikan**: Tidak ada korelasi signifikan antara jumlah jenis pembayaran yang digunakan (`payment_types`) dan total pengeluaran, menunjukkan bahwa kompleksitas pembayaran bukan pembeda untuk pelanggan bernilai tinggi.
         """
         )
+

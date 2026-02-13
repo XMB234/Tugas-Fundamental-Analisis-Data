@@ -1,4 +1,4 @@
-# Tugas-Fundamental-Analisis-Data
+# Dicoding Collection Dashboard
 ## Setup Environment - Anaconda
 
 ```bash

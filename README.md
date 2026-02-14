@@ -19,4 +19,6 @@ python -m streamlit run dashboard/app.py
 ## Run steamlit app
 ```bash
 python -m streamlit run dashboard/app.py
+#atau
+streamlit run .\dashboard\app.py
 ```

@@ -13,7 +13,6 @@ pip install -r requirements.txt
 
 # Menginisialisasi conda agar bisa digunakan di terminal (PowerShell/VS Code)
 conda init
-python -m streamlit run dashboard/app.py
 ```
 
 ## Run steamlit app

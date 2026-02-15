@@ -4,11 +4,11 @@ import numpy as np           # Untuk operasi numerik
 import matplotlib.pyplot as plt # Untuk membuat plot statis
 import seaborn as sns        # Untuk visualisasi statistik yang lebih indah
 import matplotlib.ticker as mticker # Untuk format sumbu plot
-from pathlib import Path           # Untuk manajemen path file  
+from pathlib import Path              # Untuk manajemen path file
 
 st.set_page_config(layout="wide")
 
-# --- Atur gaya Matplotlib untuk latar belakang gelap --- #
+# --- Atur gaya Matplotlib untuk latar belakang gelap ---
 # Blok ini memastikan gaya tema gelap yang konsisten untuk semua plot
 plt.style.use('dark_background')
 plt.rcParams.update({
@@ -28,12 +28,12 @@ plt.rcParams.update({
     "legend.fontsize": 'small',        # Pastikan label legenda terlihat
 })
 
-# --- Muat Data --- #
+# --- Muat Data ---
 @st.cache_data
 def load_data():
 
     BASE_DIR = Path(__file__).resolve().parent
-    
+
     # Muat semua file CSV yang diperlukan (menggunakan Path agar path relatif always benar)
     master_orders_df = pd.read_csv(BASE_DIR / 'master_orders.csv')
     monthly_revenue_df = pd.read_csv(BASE_DIR / 'monthly_revenue.csv')
@@ -97,30 +97,10 @@ def load_data():
 ) = load_data()
 
 
-# --- Hitung KPI (berdasarkan data yang tidak difilter) --- #
-# KPI ini akan ditampilkan di bagian paling atas.
-total_revenue = master_orders_df['payment_value'].sum()
-total_orders = master_orders_df['order_id'].nunique()
-average_review_score = master_orders_df['review_score'].mean()
-total_customers = master_orders_df['customer_unique_id'].nunique()
-
-# --- Judul Dashboard --- #
+# --- Judul Dashboard ---
 st.title("E-commerce Data Analysis Dashboard")
 
-# --- Kartu KPI --- #
-st.subheader("Indikator Kinerja Utama (KPI)")
-col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
-
-with col_kpi1:
-    st.metric(label="Total Pendapatan", value=f"R${total_revenue:,.2f}")
-with col_kpi2:
-    st.metric(label="Total Pesanan", value=f"{total_orders:,}")
-with col_kpi3:
-    st.metric(label="Rata-rata Skor Ulasan", value=f"{average_review_score:.2f} / 5.0")
-with col_kpi4:
-    st.metric(label="Total Pelanggan", value=f"{total_customers:,}")
-
-# --- Navigasi Sidebar --- #
+# --- Navigasi Sidebar ---
 st.sidebar.title("Navigasi Dashboard")
 selected_section = st.sidebar.radio(
     "Pilih Bagian",
@@ -133,7 +113,39 @@ selected_section = st.sidebar.radio(
     ]
 )
 
-# --- Konten berdasarkan Pilihan Sidebar --- #
+# --- Filter Segment untuk KPI ---
+all_segments = ['All Customers'] + list(master_orders_df['Segment'].dropna().unique())
+selected_segment_for_kpi = st.sidebar.selectbox(
+    "Filter KPI berdasarkan Segmen Pelanggan:",
+    options=all_segments
+)
+
+# Filter data untuk KPI berdasarkan segmen yang dipilih
+if selected_segment_for_kpi == 'All Customers':
+    kpi_data_df = master_orders_df.copy()
+else:
+    kpi_data_df = master_orders_df[master_orders_df['Segment'] == selected_segment_for_kpi].copy()
+
+# --- Hitung KPI berdasarkan data yang difilter ---
+total_revenue_kpi = kpi_data_df['payment_value'].sum()
+total_orders_kpi = kpi_data_df['order_id'].nunique()
+average_review_score_kpi = kpi_data_df['review_score'].mean()
+total_customers_kpi = kpi_data_df['customer_unique_id'].nunique()
+
+# --- Kartu KPI ---
+st.subheader(f"Indikator Kinerja Utama (KPI) untuk {selected_segment_for_kpi}")
+col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
+
+with col_kpi1:
+    st.metric(label="Total Pendapatan", value=f"R${total_revenue_kpi:,.2f}")
+with col_kpi2:
+    st.metric(label="Total Pesanan", value=f"{total_orders_kpi:,}")
+with col_kpi3:
+    st.metric(label="Rata-rata Skor Ulasan", value=f"{average_review_score_kpi:.2f} / 5.0")
+with col_kpi4:
+    st.metric(label="Total Pelanggan", value=f"{total_customers_kpi:,}")
+
+# --- Konten berdasarkan Pilihan Sidebar (menggunakan master_orders_df yang tidak difilter untuk visualisasi) ---
 
 if selected_section == "Ringkasan Umum Data":
     st.header("1. Ringkasan Umum Data E-commerce")
@@ -145,7 +157,7 @@ if selected_section == "Ringkasan Umum Data":
             "delivery_time_days", "total_items", "unique_sellers",
             "review_score"
         ]
-        # --- Dedicated variable for log-scaled columns --- #
+        # --- Dedicated variable for log-scaled columns ---
         log_scaled_cols = ["payment_value", "total_price", "total_freight", "delivery_time_days"]
 
         n_cols = 3
@@ -180,7 +192,7 @@ if selected_section == "Ringkasan Umum Data":
         st.pyplot(fig_num)
         plt.close(fig_num)
         st.markdown("""
-        **Insight**: Visualisasi ini menunjukkan distribusi variabel numerik utama seperti nilai pembayaran, harga total, biaya pengiriman, dan waktu pengiriman. Mayoritas transaksi memiliki nilai rendah, dengan 'ekor panjang' dari transaksi bernilai tinggi. Waktu pengiriman bervariasi, dan skor ulasan cenderung tinggi. Skala log digunakan untuk mengatasi kemiringan data yang ekstrem.
+        **Insight**: Visualisasi ini menunjukkan distribusi variabel numerik utama seperti nilai pembayaran, harga total, biaya pengiriman, dan waktu pengiriman. Mayoritas transaksi memiliki nilai rendah, dengan 'ekor panjang' dari transaksi bernilai tinggi. Waktu pengiriman bervariasi, dan skor ulasan cenderung tinggi. Skala log digunakan untuk mengatasi kemiringan data yang ekstrem, yang konsisten dengan pola penjualan e-commerce di mana sebagian besar transaksi bernilai kecil dan sebagian kecil bernilai sangat tinggi.
         """
         )
 
@@ -206,7 +218,7 @@ if selected_section == "Ringkasan Umum Data":
             st.pyplot(fig_status)
             plt.close(fig_status)
             st.markdown("""
-            **Insight**: Hampir semua pesanan berhasil dikirim ('delivered'), menunjukkan efisiensi operasional yang tinggi. Persentase pesanan yang dibatalkan atau tidak tersedia sangat kecil, yang positif untuk kepuasan pelanggan.
+            **Insight**: Hampir semua pesanan berhasil dikirim ('delivered') sekitar 97%, menunjukkan efisiensi operasional yang tinggi. Persentase pesanan yang dibatalkan atau tidak tersedia sangat kecil, yang merupakan indikator positif untuk pengalaman pelanggan secara keseluruhan dan manajemen operasional.
             """
             )
 
@@ -222,11 +234,12 @@ if selected_section == "Ringkasan Umum Data":
             ax_payment.tick_params(axis='y', colors='white')
             for index, value in enumerate(payment_types_summary_df["Percentage (%)"]):
                 ax_payment.text(index, value + 0.5, f'{value:.1f}%', ha='center', fontsize=8, color='white')
+            ax_payment.set_ylim(top=payment_types_summary_df["Percentage (%)"].max() * 1.15)
             plt.tight_layout()
             st.pyplot(fig_payment)
             plt.close(fig_payment)
             st.markdown("""
-            **Insight**: Mayoritas pesanan hanya menggunakan satu jenis metode pembayaran. Ini menunjukkan preferensi pelanggan untuk proses pembayaran yang sederhana, atau mungkin transaksi yang tidak memerlukan beberapa metode pembayaran.
+            **Insight**: Mayoritas pesanan (lebih dari 99%) hanya menggunakan satu jenis metode pembayaran. Ini menunjukkan preferensi pelanggan untuk proses pembayaran yang sederhana dan langsung, atau mungkin bahwa transaksi jarang membutuhkan kombinasi metode pembayaran.
             """
             )
 
@@ -252,7 +265,7 @@ if selected_section == "Ringkasan Umum Data":
             st.pyplot(fig_review)
             plt.close(fig_review)
             st.markdown("""
-            **Insight**: Distribusi skor ulasan menunjukkan bahwa sebagian besar pelanggan memberikan skor tinggi (4 dan 5), menandakan tingkat kepuasan yang umumnya baik. Skor 5 adalah yang paling dominan, diikuti oleh skor 4. Skor rendah (1 dan 2) jauh lebih jarang muncul.
+            **Insight**: Distribusi skor ulasan menunjukkan bahwa sebagian besar pelanggan (lebih dari 80%) memberikan skor tinggi (4 dan 5), menandakan tingkat kepuasan yang umumnya baik. Skor 5 adalah yang paling dominan, diikuti oleh skor 4. Skor rendah (1 dan 2) jauh lebih jarang muncul, mengindikasikan pengalaman positif mayoritas pelanggan.
             """
             )
 
@@ -274,7 +287,7 @@ if selected_section == "Ringkasan Umum Data":
             st.pyplot(fig_orders_monthly)
             plt.close(fig_orders_monthly)
             st.markdown("""
-            **Insight**: Grafik menunjukkan tren pertumbuhan jumlah pesanan bulanan yang stabil dari akhir 2016 hingga pertengahan 2018. Ini mengindikasikan ekspansi pasar atau peningkatan adopsi platform. Penurunan tajam di akhir periode mungkin disebabkan oleh data yang tidak lengkap.
+            **Insight**: Grafik menunjukkan tren pertumbuhan jumlah pesanan bulanan yang stabil dari akhir 2016 hingga pertengahan 2018. Ini mengindikasikan ekspansi pasar atau peningkatan adopsi platform. Penurunan tajam di akhir periode mungkin disebabkan oleh data yang tidak lengkap untuk bulan-bulan terakhir.
             """
             )
 
@@ -292,7 +305,7 @@ if selected_section == "Ringkasan Umum Data":
             st.pyplot(fig_monthly_revenue)
             plt.close(fig_monthly_revenue)
             st.markdown("""
-            **Insight**: Mirip dengan volume pesanan, pendapatan bulanan menunjukkan tren kenaikan yang konsisten, mencapai puncaknya pada pertengahan 2018. Ini mencerminkan pertumbuhan bisnis secara keseluruhan, dengan fluktuasi musiman yang mungkin terkait dengan event belanja.
+            **Insight**: Mirip dengan volume pesanan, pendapatan bulanan menunjukkan tren kenaikan yang konsisten, mencapai puncaknya pada pertengahan 2018. Ini mencerminkan pertumbuhan bisnis secara keseluruhan, dengan fluktuasi musiman yang mungkin terkait dengan event belanja. Penurunan di akhir periode kemungkinan besar karena ketidaklengkapan data.
             """
             )
 
@@ -306,6 +319,7 @@ elif selected_section == "Analisis Kepuasan Pelanggan":
             category_review_scores_df
             .sort_values('avg_review_score', ascending=False)
             .pipe(lambda df: pd.concat([df.head(10), df.tail(10)]))
+            .sort_values('avg_review_score', ascending=False) # Changed to ascending=False
         )
         fig_cat_review, ax_cat_review = plt.subplots(figsize=(10, 6))
         sns.barplot(
@@ -324,11 +338,12 @@ elif selected_section == "Analisis Kepuasan Pelanggan":
         ax_cat_review.tick_params(axis='y', colors='white')
         for index, value in enumerate(top_bottom_categories['avg_review_score']):
             ax_cat_review.text(value + 0.05, index, f'{value:.2f}', va='center', fontsize=8, color='white')
+        ax_cat_review.set_xlim(right=top_bottom_categories['avg_review_score'].max() * 1.15) # Adjust x-axis limit for labels
         plt.tight_layout()
         st.pyplot(fig_cat_review)
         plt.close(fig_cat_review)
         st.markdown("""
-        **Insight**: Kategori produk seperti 'cds_dvds_musicals' dan 'fashion_childrens_clothes' memiliki skor ulasan rata-rata tertinggi, menunjukkan kepuasan tinggi di segmen tersebut. Sebaliknya, 'security_and_services' dan 'office_furniture' memiliki skor terendah, menyoroti area untuk perbaikan. Ini menunjukkan bahwa jenis produk sangat mempengaruhi kepuasan.
+        **Insight**: Kategori produk seperti 'cds_dvds_musicals' dan 'fashion_childrens_clothes' memiliki skor ulasan rata-rata tertinggi, menunjukkan kepuasan tinggi di segmen tersebut. Sebaliknya, 'security_and_services' dan 'office_furniture' memiliki skor terendah, menyoroti area untuk perbaikan. Ini menunjukkan bahwa jenis produk sangat mempengaruhi kepuasan, dengan produk-produk tertentu yang secara konsisten menghasilkan pengalaman pelanggan yang lebih baik atau lebih buruk.
         """
         )
 
@@ -338,6 +353,7 @@ elif selected_section == "Analisis Kepuasan Pelanggan":
             state_review_summary_df
             .sort_values('avg_review_score', ascending=False)
             .pipe(lambda df: pd.concat([df.head(10), df.tail(10)]))
+            .sort_values('avg_review_score', ascending=False) # Changed to ascending=False
         )
         fig_state_review, ax_state_review = plt.subplots(figsize=(10, 6))
         sns.barplot(
@@ -356,62 +372,142 @@ elif selected_section == "Analisis Kepuasan Pelanggan":
         ax_state_review.tick_params(axis='y', colors='white')
         for index, value in enumerate(top_bottom_states['avg_review_score']):
             ax_state_review.text(value + 0.05, index, f'{value:.2f}', va='center', fontsize=8, color='white')
+        ax_state_review.set_xlim(right=top_bottom_states['avg_review_score'].max() * 1.15) # Adjust x-axis limit for labels
         plt.tight_layout()
         st.pyplot(fig_state_review)
         plt.close(fig_state_review)
         st.markdown("""
-        **Insight**: Kepuasan pelanggan bervariasi secara geografis. Negara bagian seperti AP, AM, dan PR menunjukkan skor ulasan lebih tinggi, mungkin karena logistik yang lebih baik atau kualitas produk yang lebih sesuai. Sebaliknya, RR, AL, dan MA memiliki skor lebih rendah, menunjukkan area yang memerlukan perhatian khusus.
+        **Insight**: Kepuasan pelanggan bervariasi secara geografis. Negara bagian seperti AP, AM, dan PR menunjukkan skor ulasan lebih tinggi, mungkin karena logistik yang lebih baik atau kualitas produk yang lebih sesuai untuk wilayah tersebut. Sebaliknya, RR, AL, dan MA memiliki skor lebih rendah, menunjukkan area yang memerlukan perhatian khusus dalam peningkatan layanan atau pemahaman ekspektasi pelanggan lokal.
         """
         )
 
     with st.expander("Delivery Time vs Review Score"):
         st.subheader("Delivery Time vs Review Score")
+        # Create review_delivery_summary_df for Streamlit
+        review_delivery_summary_df = (
+            master_orders_df
+            .groupby("review_score", as_index=False)
+            .agg(
+                avg_delivery_time_days=("delivery_time_days", "mean"),
+                total_orders=("delivery_time_days", "count")
+            )
+        )
+        review_delivery_summary_df["avg_delivery_time_days"] = (
+            review_delivery_summary_df["avg_delivery_time_days"].round().astype(int)
+        )
+
         fig_delivery_review, ax_delivery_review = plt.subplots(figsize=(10, 6))
-        sns.boxplot(
+
+        # Define custom color map
+        color_map = {score: 'red' if score == 1.0 else 'green' if score == 5.0 else 'skyblue'
+                     for score in review_delivery_summary_df['review_score']}
+
+        sns.barplot(
             x="review_score",
-            y="delivery_time_days",
-            data=master_orders_df,
-            showfliers=False,
+            y="avg_delivery_time_days",
+            data=review_delivery_summary_df,
+            hue="review_score",
+            palette=color_map,
+            legend=False,
             ax=ax_delivery_review
         )
-        ax_delivery_review.set_title("Delivery Time vs Review Score", fontsize=12, color='white')
-        ax_delivery_review.set_xlabel("Review Score", fontsize=10, color='white')
-        ax_delivery_review.set_ylabel("Delivery Time (Days)", fontsize=10, color='white')
+        ax_delivery_review.set_title("Average Delivery Time vs Review Score", fontsize=14, color='white')
+        ax_delivery_review.set_xlabel("Review Score", fontsize=12, color='white')
+        ax_delivery_review.set_ylabel("Average Delivery Time (Days)", fontsize=12, color='white')
         ax_delivery_review.grid(axis='y', linestyle='--', alpha=0.6)
         ax_delivery_review.tick_params(axis='x', colors='white')
         ax_delivery_review.tick_params(axis='y', colors='white')
+
+        # Add data labels
+        for p in ax_delivery_review.patches:
+            ax_delivery_review.annotate(
+                f'{int(p.get_height())}',
+                (p.get_x() + p.get_width() / 2., p.get_height()),
+                ha='center',
+                va='center',
+                fontsize=10,
+                color='white', # Set text color to white for dark background
+                xytext=(0, 5),
+                textcoords='offset points'
+            )
+
+        # Adjust y-axis limit for padding
+        ax_delivery_review.set_ylim(0, review_delivery_summary_df['avg_delivery_time_days'].max() * 1.1)
+
         plt.tight_layout()
         st.pyplot(fig_delivery_review)
         plt.close(fig_delivery_review)
         st.markdown("""
-        **Insight**: Ada korelasi negatif yang jelas antara waktu pengiriman dan skor ulasan: semakin lama waktu pengiriman, semakin rendah skor ulasan yang diberikan pelanggan. Pesanan dengan skor 1.0 memiliki rata-rata waktu pengiriman terlama (sekitar 21 hari), menegaskan pentingnya pengiriman yang cepat untuk kepuasan.
+        **Insight**: Ada **korelasi negatif yang sangat kuat** antara waktu pengiriman dan skor ulasan: semakin lama waktu pengiriman, semakin rendah skor ulasan yang diberikan pelanggan. Pesanan dengan skor 1.0 memiliki rata-rata waktu pengiriman terlama (sekitar 21 hari, ditandai merah), sedangkan skor 5.0 memiliki rata-rata waktu pengiriman tercepat (sekitar 10 hari, ditandai hijau), menegaskan pentingnya kecepatan dan ketepatan waktu pengiriman untuk kepuasan pelanggan.
         """
         )
 
     with st.expander("Review Score Distribution by Order Status"):
         st.subheader("Review Score Distribution by Order Status")
+        # Create order_status_review_scores_df for Streamlit
+        order_status_review_scores_df = (
+            master_orders_df
+            .groupby('order_status')['review_score']
+            .mean()
+            .round(2)
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+
         fig_status_review, ax_status_review = plt.subplots(figsize=(12, 7))
-        sns.boxplot(
+
+        # Define custom color map
+        status_colors = {
+            'delivered': 'green',
+            'approved': 'skyblue',
+            'created': 'skyblue',
+            'invoiced': 'skyblue',
+            'processing': 'skyblue',
+            'shipped': 'skyblue',
+            'unavailable': 'red',
+            'canceled': 'red'
+        }
+        colors_for_plot = [status_colors.get(status, 'gray') for status in order_status_review_scores_df['order_status']]
+
+        sns.barplot(
             x="order_status",
             y="review_score",
-            data=master_orders_df,
-            palette='coolwarm',
-            hue="order_status",
-            legend=False,
-            showfliers=False,
+            data=order_status_review_scores_df, # Use the prepared dataframe
+            palette=colors_for_plot, # Use custom color palette
+            hue="order_status",      # Set hue for distinct colors per bar
+            legend=False,            # Disable legend as colors are self-explanatory
             ax=ax_status_review
         )
-        ax_status_review.set_title("Review Score Distribution by Order Status", fontsize=14, color='white')
+        ax_status_review.set_title("Average Review Score by Order Status", fontsize=16, color='white')
         ax_status_review.set_xlabel("Order Status", fontsize=12, color='white')
         ax_status_review.set_ylabel("Review Score", fontsize=12, color='white')
-        ax_status_review.tick_params(axis='x', rotation=45, colors='white')
+        # Corrected lines for tick_params and set_xticklabels
+        ax_status_review.tick_params(axis='x', colors='white')
+        ax_status_review.set_xticklabels(ax_status_review.get_xticklabels(), rotation=45, ha='right')
         ax_status_review.tick_params(axis='y', colors='white')
-        ax_status_review.grid(axis='y', linestyle='--', alpha=0.7)
+        ax_status_review.grid(axis='y', linestyle='--', alpha=0.7);
+
+        # Add data labels
+        for p in ax_status_review.patches:
+            ax_status_review.annotate(
+                f'{p.get_height():.2f}',
+                (p.get_x() + p.get_width() / 2., p.get_height()),
+                ha='center',
+                va='bottom',
+                fontsize=10,
+                color='white',
+                xytext=(0, 5),
+                textcoords='offset points'
+            )
+
+        # Set y-axis limit
+        ax_status_review.set_ylim(0, 5.0);
+
         plt.tight_layout()
         st.pyplot(fig_status_review)
         plt.close(fig_status_review)
         st.markdown("""
-        **Insight**: Status pesanan secara langsung memengaruhi kepuasan. Pesanan yang 'canceled' atau 'unavailable' memiliki skor ulasan sangat rendah atau tidak ada, sementara pesanan yang berhasil 'delivered' memiliki skor yang jauh lebih tinggi. Ini adalah indikator langsung keberhasilan transaksi.
+        **Insight**: Status pesanan secara langsung memengaruhi kepuasan pelanggan. Pesanan yang 'canceled' atau 'unavailable' (ditandai merah) memiliki skor ulasan rata-rata yang sangat rendah (sekitar 1.5-1.8), yang logis karena pesanan tersebut tidak berhasil diselesaikan. Sebaliknya, pesanan yang berhasil 'delivered' (ditandai hijau) memiliki skor rata-rata tertinggi (4.16), menunjukkan bahwa penyelesaian transaksi yang sukses adalah kunci kepuasan.
         """
         )
 
@@ -434,16 +530,16 @@ elif selected_section == "Analisis Kepuasan Pelanggan":
             linecolor="white",
             cbar_kws={"shrink": 0.8},
             ax=ax_corr,
-            annot_kws={"color": "white"}
+            annot_kws={"color": "white"} # Ensure annotation text is white
         )
-        ax_corr.set_title("Matriks Korelasi Antar Variabel Utama", fontsize=14, color='white')
+        ax_corr.set_title("Matriks Koreelasi Antar Variabel Utama", fontsize=14, color='white')
         ax_corr.tick_params(axis='x', colors='white')
         ax_corr.tick_params(axis='y', colors='white')
         plt.tight_layout()
         st.pyplot(fig_corr)
         plt.close(fig_corr)
         st.markdown("""
-        **Insight**: Heatmap korelasi menunjukkan bahwa `delivery_time_days` memiliki korelasi negatif terkuat dengan `review_score` (-0.33), sekali lagi menekankan pentingnya pengiriman yang cepat. `total_price` dan `payment_value` memiliki korelasi yang sangat kuat, seperti yang diharapkan. Faktor lain seperti `total_items` dan `unique_sellers` memiliki korelasi sangat lemah dengan `review_score`.
+        **Insight**: Heatmap korelasi menunjukkan bahwa `delivery_time_days` memiliki korelasi negatif terkuat dengan `review_score` (-0.33), sekali lagi menekankan secara kuantitatif pentingnya pengiriman yang cepat. `total_price` dan `payment_value` memiliki korelasi positif yang sangat kuat (0.97), seperti yang diharapkan. Faktor lain seperti `total_items`, `unique_sellers`, dan `total_freight` memiliki korelasi sangat lemah dengan `review_score`, menunjukkan bahwa dampaknya terhadap kepuasan tidak signifikan.
         """
         )
 
@@ -521,7 +617,7 @@ elif selected_section == "Analisis Pelanggan Bernilai Tinggi":
             st.pyplot(fig_hv_products)
             plt.close(fig_hv_products)
             st.markdown("""
-            **Insight**: Pelanggan bernilai tinggi ('Champions') menunjukkan preferensi yang kuat terhadap kategori produk tertentu seperti 'bed_bath_table', 'computers_accessories', dan 'furniture_decor'. Ini mengindikasikan bahwa produk rumah tangga, teknologi, dan dekorasi adalah daya tarik utama bagi segmen ini, memberikan peluang untuk penawaran yang ditargetkan.
+            **Insight**: Pelanggan bernilai tinggi ('Champions') menunjukkan preferensi yang kuat terhadap kategori produk tertentu seperti `bed_bath_table`, `computers_accessories`, dan `furniture_decor`. Ini mengindikasikan bahwa produk rumah tangga, teknologi, dan dekorasi adalah daya tarik utama bagi segmen ini, memberikan peluang untuk penawaran yang ditargetkan dan strategi *cross-selling* yang efektif.
             """
             )
         else:
@@ -530,7 +626,7 @@ elif selected_section == "Analisis Pelanggan Bernilai Tinggi":
     with st.expander("Distribusi Frekuensi Pembelian per Pelanggan"):
         st.subheader("Distribusi Frekuensi Pembelian per Pelanggan")
         fig_freq_dist, ax_freq_dist = plt.subplots(figsize=(10, 5))
-        sns.histplot(customer_value_df["total_orders"], bins=30, ax=ax_freq_dist, color='orange')
+        sns.histplot(customer_value_df["total_orders"], bins=30, ax=ax_freq_dist, color='orange') # Fixed bins to 30
         ax_freq_dist.set_title("Distribusi Jumlah Pesanan per Pelanggan", fontsize=12, color='white')
         ax_freq_dist.set_xlabel("Total Pesanan", fontsize=10, color='white')
         ax_freq_dist.set_ylabel("Jumlah Pelanggan", fontsize=10, color='white')
@@ -541,7 +637,7 @@ elif selected_section == "Analisis Pelanggan Bernilai Tinggi":
         st.pyplot(fig_freq_dist)
         plt.close(fig_freq_dist)
         st.markdown("""
-        **Insight**: Sebagian besar pelanggan memiliki frekuensi pembelian yang sangat rendah, seringkali hanya satu pesanan. Ini menunjukkan bahwa meskipun ada pelanggan dengan nilai transaksi tinggi, mereka tidak selalu melakukan pembelian berulang secara sering. Model bisnis ini cenderung berorientasi pada transaksi besar satu kali.
+        **Insight**: Sebagian besar pelanggan memiliki frekuensi pembelian yang sangat rendah, seringkali hanya satu pesanan. Ini menunjukkan bahwa meskipun ada pelanggan dengan nilai transaksi tinggi, mereka tidak selalu melakukan pembelian berulang secara sering. Model bisnis ini cenderung berorientasi pada transaksi besar satu kali daripada membangun loyalitas melalui frekuensi pembelian.
         """
         )
 
@@ -567,7 +663,7 @@ elif selected_section == "Analisis Pelanggan Bernilai Tinggi":
         st.pyplot(fig_freq_aov)
         plt.close(fig_freq_aov)
         st.markdown("""
-        **Insight**: Scatter plot mengkonfirmasi bahwa sebagian besar pelanggan memiliki frekuensi pesanan yang rendah (umumnya 1), tetapi dengan rentang nilai pesanan rata-rata yang bervariasi, termasuk beberapa outlier dengan nilai yang sangat tinggi. Ini menegaskan bahwa pelanggan bernilai tinggi tidak selalu merupakan pembeli yang sering, melainkan mereka yang melakukan pembelian besar pada satu atau sedikit kesempatan.
+        **Insight**: Scatter plot mengkonfirmasi bahwa sebagian besar pelanggan memiliki frekuensi pesanan yang rendah (umumnya 1), tetapi dengan rentang nilai pesanan rata-rata yang bervariasi, termasuk beberapa *outlier* dengan nilai yang sangat tinggi. Ini menegaskan bahwa pelanggan bernilai tinggi tidak selalu merupakan pembeli yang sering, melainkan mereka yang melakukan pembelian besar pada satu atau sedikit kesempatan, yang membentuk karakteristik utama segmen pelanggan bernilai tinggi.
         """
         )
 
@@ -592,7 +688,7 @@ elif selected_section == "Analisis Pelanggan Bernilai Tinggi":
         st.pyplot(fig_payment_value_scatter)
         plt.close(fig_payment_value_scatter)
         st.markdown("""
-        **Insight**: Tidak ada korelasi yang jelas antara jumlah jenis pembayaran yang digunakan dan total pengeluaran pelanggan. Pelanggan bernilai tinggi tidak cenderung menggunakan lebih banyak jenis pembayaran. Hal ini menunjukkan bahwa kompleksitas metode pembayaran bukan faktor pembeda signifikan untuk mengidentifikasi pelanggan bernilai tinggi.
+        **Insight**: Tidak ada korelasi yang jelas antara jumlah jenis pembayaran yang digunakan dan total pengeluaran pelanggan. Pelanggan bernilai tinggi tidak cenderung menggunakan lebih banyak jenis pembayaran. Hal ini menunjukkan bahwa kompleksitas metode pembayaran bukan faktor pembeda signifikan untuk mengidentifikasi pelanggan bernilai tinggi, dan fokus harus pada nilai transaksi itu sendiri.
         """
         )
 
@@ -665,6 +761,7 @@ elif selected_section == "Analisis RFM":
         axes_avg_rfm[0].tick_params(axis='y', colors='white')
         for p in axes_avg_rfm[0].patches:
             axes_avg_rfm[0].annotate(f"{p.get_height():.0f}", (p.get_x() + p.get_width() / 2, p.get_height()), ha="center", va="bottom", fontsize=8, color='white')
+        axes_avg_rfm[0].set_ylim(top=rfm_avg_metrics_readable_df["Avg Recency (Hari)"].max() * 1.15) # Adjusted ylim
 
         sns.barplot(x="Segment", y="Avg Frequency (Pesanan)", data=rfm_avg_metrics_readable_df, palette="Greens_r", hue="Segment", legend=False, ax=axes_avg_rfm[1])
         axes_avg_rfm[1].set_title("Rata-rata Frekuensi", fontsize=12, color='white')
@@ -674,6 +771,7 @@ elif selected_section == "Analisis RFM":
         axes_avg_rfm[1].tick_params(axis='y', colors='white')
         for p in axes_avg_rfm[1].patches:
             axes_avg_rfm[1].annotate(f"{p.get_height():.1f}", (p.get_x() + p.get_width() / 2, p.get_height()), ha="center", va="bottom", fontsize=8, color='white')
+        axes_avg_rfm[1].set_ylim(top=rfm_avg_metrics_readable_df["Avg Frequency (Pesanan)"].max() * 1.15) # Adjusted ylim
 
         sns.barplot(x="Segment", y="Avg Monetary Value (R$)", data=rfm_avg_metrics_readable_df, palette="Oranges_r", hue="Segment", legend=False, ax=axes_avg_rfm[2])
         axes_avg_rfm[2].set_title("Rata-rata Nilai Moneter", fontsize=12, color='white')
@@ -683,6 +781,7 @@ elif selected_section == "Analisis RFM":
         axes_avg_rfm[2].tick_params(axis='y', colors='white')
         for p in axes_avg_rfm[2].patches:
             axes_avg_rfm[2].annotate(f"{p.get_height():,.0f}", (p.get_x() + p.get_width() / 2, p.get_height()), ha="center", va="bottom", fontsize=8, color='white')
+        axes_avg_rfm[2].set_ylim(top=rfm_avg_metrics_readable_df["Avg Monetary Value (R$)"].max() * 1.15) # Adjusted ylim
 
         plt.tight_layout()
         st.pyplot(fig_avg_rfm)
@@ -838,10 +937,9 @@ elif selected_section == "Kesimpulan Utama Analisis":
             *   **Kontribusi Pendapatan Signifikan**: Segmen 'At Risk' dan 'Champions' adalah kontributor pendapatan terbesar, menunjukkan bahwa pelanggan yang berisiko (dulunya aktif) dan pelanggan juara adalah kunci bagi total pendapatan.
 
         2.  **Pola Perilaku Belanja**:
-            *   **Frekuensi Pembelian Rendah**: Sebagian besar pelanggan, termasuk yang bernilai tinggi, adalah pembeli tunggal atau memiliki frekuensi pembelian yang sangat rendah (`total_orders` rata-rata mendekati 1). Ini mengindikasikan model bisnis yang lebih mengarah pada transaksi besar satu kali daripada pembelian berulang yang sering.
+            *   **Frekuensi Pembelian Rendah**: Sebagian besar pelanggan, termasuk yang bernilai tinggi, adalah pembeli tunggal atau memiliki frekuensi pembelian yang sangat rendah (`total_orders` rata-rata mendekati 1). This mengindikasikan model bisnis yang lebih mengarah pada transaksi besar satu kali daripada pembelian berulang yang sering.
             *   **Preferensi Produk Spesifik**: Pelanggan bernilai tinggi menunjukkan preferensi yang jelas terhadap kategori produk tertentu. Kategori teratas yang sering dibeli oleh mereka adalah `bed_bath_table`, `computers_accessories`, `furniture_decor`, `health_beauty`, dan `watches_gifts`.
             *   **Konsentrasi Geografis**: Pelanggan bernilai tinggi, seperti semua segmen RFM, terkonsentrasi di wilayah geografis tertentu, terutama Sao Paulo (SP), yang merupakan pasar utama dengan kontribusi pendapatan tertinggi.
-            *   **Kompleksitas Pembayaran Tidak Signifikan**: Tidak ada korelasi signifikan antara jumlah jenis pembayaran yang digunakan (`payment_types`) dan total pengeluaran, menunjukkan bahwa kompleksitas pembayaran bukan pembeda untuk pelanggan bernilai tinggi.
+            *   **Kompleksitas Pembayaran Tidak Signifikans**: Tidak ada korelasi signifikan antara jumlah jenis pembayaran yang digunakan (`payment_types`) dan total pengeluaran, menunjukkan bahwa kompleksitas pembayaran bukan pembeda untuk pelanggan bernilai tinggi.
         """
         )
-
